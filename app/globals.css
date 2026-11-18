@@ -1,0 +1,1261 @@
+@import "tailwindcss";
+
+/* =========================================
+   PE$OS GLOBAL THEME
+   ========================================= */
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --navbar-height: 92px;
+
+  /* Still gradient — dark → luminous green/yellow → white. The
+     site-wide backdrop. */
+  --pesos-still-gradient:
+    radial-gradient(
+      ellipse 60% 46% at 50% 60%,
+      rgba(198, 255, 61, 0.55),
+      rgba(198, 255, 61, 0) 65%
+    ),
+    linear-gradient(
+      180deg,
+      #030401 0%,
+      #0c1a06 20%,
+      #1b3a0c 38%,
+      #3f7a14 56%,
+      #8fd426 74%,
+      #e8f9a0 90%,
+      #ffffff 100%
+    );
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* PE$OS Typography */
+  --font-sans: var(--font-space-grotesk);
+  --font-heading: var(--font-vanish);
+}
+
+/* =========================================
+   DARK MODE
+   ========================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* =========================================
+   GLOBAL RESET
+   ========================================= */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: #000;
+}
+
+/* =========================================
+   GLOBAL TYPOGRAPHY
+   ========================================= */
+
+body {
+  color: var(--foreground);
+
+  /* Still gradient — the site-wide backdrop, and the fallback whenever
+     the WebGL canvas can't draw (or hasn't drawn its first frame yet).
+     The canvas is opaque once it's running, so this simply sits
+     underneath and is never seen; when WebGL fails the canvas stays
+     transparent and this shows through automatically, with no JS
+     involved either way. Any page can still opt out by painting its
+     own opaque background over it (e.g. the game viewer). */
+  background: var(--pesos-still-gradient);
+
+  /* Space Grotesk → body/UI */
+  font-family: var(--font-space-grotesk), sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================
+   SITE-WIDE INTERACTIVE GRADIENT CANVAS
+   Mounted once in the root layout so it
+   persists across client-side navigation.
+   ========================================= */
+
+.pesos-bg-canvas {
+  position: fixed;
+  inset: 0;
+
+  z-index: 0;
+
+  display: block;
+  width: 100%;
+  height: 100%;
+
+  /* Forces this canvas onto its own GPU compositing layer permanently.
+     Safari/WebKit has a known issue where a fixed-position canvas can
+     draw successfully but not get composited to screen on first paint,
+     staying blank until something else forces a repaint (scroll,
+     resize). Promoting it up front sidesteps that. */
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* =========================================
+   VANISH → HEADINGS / TITLES
+   ========================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-vanish), sans-serif;
+}
+
+/* =========================================
+   LINKS
+   ========================================= */
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =========================================
+   BELOW-NAVBAR CONTENT OFFSET
+   Use on any page whose content should sit
+   flush under the fixed navbar rather than
+   behind/overlapping it.
+   ========================================= */
+
+.pesos-below-navbar {
+  margin-top: var(--navbar-height);
+  min-height: calc(100vh - var(--navbar-height));
+}
+
+/* Fixed-height variant for content that must fill exactly
+   from under the navbar to the bottom of the viewport,
+   with no page scroll (e.g. full-bleed canvas/iframe views).
+   Pinned directly to all four viewport edges (instead of a
+   margin-top + calc(100vh - ...) height) so there's no gap from
+   the two values rounding to sub-pixel-different results.
+
+   The height is then re-stated in dvh, and that second declaration is the
+   one that matters on a phone. A fixed element pinned to bottom:0 is pinned
+   to the LAYOUT viewport, which on mobile Safari and Chrome is the tall one
+   — the height the page has when the address bar has scrolled away. While
+   the bar is showing, which is how every one of these pages opens, the last
+   40-odd points of the element are underneath it: on the hunt that is
+   exactly where the controls live. dvh is the viewport as it currently is,
+   toolbars included, so the bottom edge of the frame is the bottom edge
+   someone can actually see and touch.
+
+   Both are kept. A browser without dvh ignores the second declaration and
+   keeps the pinned box, which is the behaviour this had before. */
+.pesos-below-navbar-fixed {
+  position: fixed;
+  inset: var(--navbar-height) 0 0 0;
+  height: auto;
+}
+
+@supports (height: 100dvh) {
+  .pesos-below-navbar-fixed {
+    bottom: auto;
+    height: calc(100dvh - var(--navbar-height));
+  }
+}
+
+/* =========================================
+   MOBILE NAV
+   ========================================= */
+
+.pesos-mobile-menu {
+  display: none;
+}
+
+.pesos-mobile-menu__toggle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+
+  width: 32px;
+  height: 32px;
+  padding: 0;
+
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.pesos-mobile-menu__toggle span {
+  display: block;
+  width: 22px;
+  height: 1.5px;
+  background: #fff;
+  transition: transform 0.25s ease, opacity 0.25s ease, background-color 0.3s ease;
+}
+
+/* Solid white navbar (scrolled state) needs a dark toggle icon to
+   stay visible against it. */
+.pesos-mobile-menu__toggle--dark span {
+  background: #111;
+}
+
+.pesos-mobile-menu__toggle[aria-expanded="true"] span:first-child {
+  transform: translateY(3.25px) rotate(45deg);
+}
+
+.pesos-mobile-menu__toggle[aria-expanded="true"] span:last-child {
+  transform: translateY(-3.25px) rotate(-45deg);
+}
+
+.pesos-mobile-menu__panel {
+  position: fixed;
+  inset: var(--navbar-height) 0 0 0;
+
+  z-index: 39;
+
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+
+  padding: 32px clamp(24px, 6vw, 56px);
+
+  /* A phone on its side leaves this panel under 300px tall, which put the
+     currency picker below the screen with nothing that scrolled to it.
+     `contain` keeps a scroll that runs out here from moving the page
+     underneath. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  background: rgba(3, 2, 1, 0.96);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.pesos-mobile-menu__link {
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  .pesos-nav__links {
+    display: none;
+  }
+
+  .pesos-mobile-menu {
+    display: block;
+  }
+}
+
+/* =========================================
+   PE$OS CUSTOM CIRCLE CURSOR
+   ========================================= */
+
+body.pesos-cursor-active,
+body.pesos-cursor-active * {
+  cursor: none !important;
+}
+
+.pesos-cursor {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+
+  /* The blend lives HERE, not on the dot/ring. This element is
+     position:fixed with a z-index, so it forms its own stacking context —
+     a child with mix-blend-mode would blend against this container's
+     (empty, transparent) group rather than against the page, come out
+     plain white, and vanish over white photos. Blending the whole layer
+     makes it composite against the page behind it, so the cursor is always
+     the exact negative of whatever it's over. */
+  mix-blend-mode: difference;
+}
+
+.pesos-cursor__dot,
+.pesos-cursor__ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.pesos-cursor__dot {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  will-change: transform;
+}
+
+.pesos-cursor__ring {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid #fff;
+  background: transparent;
+  will-change: transform, width, height;
+  transition:
+    width 0.2s ease,
+    height 0.2s ease,
+    border-width 0.2s ease,
+    opacity 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.pesos-cursor__ring--hover {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.pesos-cursor__ring--active {
+  width: 24px;
+  height: 24px;
+}
+
+@media (pointer: coarse) {
+  .pesos-cursor {
+    display: none;
+  }
+}
+
+/* =========================================
+   PE$OS FULL SCREEN LOADER
+   ========================================= */
+
+.page-loader {
+  position: fixed;
+  inset: 0;
+
+  width: 100vw;
+  height: 100vh;
+
+  z-index: 2147483647;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #000;
+
+  overflow: hidden;
+  will-change: transform;
+}
+
+/* =========================================
+   LOADER 3D SCENE
+   ========================================= */
+
+.page-loader__canvas {
+  display: block;
+  width: min(720px, 88vw);
+  aspect-ratio: 4.4 / 1.85;
+}
+
+/* =========================================
+   LOADER EXIT — CURTAIN RISE
+   ========================================= */
+
+.page-loader--exit {
+  animation: pesos-curtain-up 0.95s
+    cubic-bezier(0.76, 0, 0.24, 1) forwards;
+}
+
+@keyframes pesos-curtain-up {
+  0% {
+    transform: translateY(0%);
+  }
+
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+/* =========================================
+   PE$OS HOMEPAGE
+   ========================================= */
+
+.pesos-home {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.pesos-hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* =========================================
+   CINEMATIC HERO OVERLAY
+   ========================================= */
+
+.pesos-hero__overlay {
+  position: absolute;
+  inset: 0;
+
+  z-index: 1;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.32) 0%,
+      rgba(0, 0, 0, 0.04) 30%,
+      rgba(0, 0, 0, 0.05) 55%,
+      rgba(0, 0, 0, 0.3) 100%
+    );
+}
+
+/* =========================================
+   HERO LAYOUT
+   ========================================= */
+
+.pesos-hero {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+  row-gap: 40px;
+
+  padding: 140px clamp(24px, 5vw, 56px) clamp(32px, 5vw, 56px);
+}
+
+.pesos-hero__identity,
+.pesos-hero__meta,
+.pesos-hero__content,
+.pesos-hero__bottom {
+  position: relative;
+  z-index: 2;
+}
+
+/* =========================================
+   HERO TEXT — BASE
+   ========================================= */
+
+.pesos-hero__identity,
+.pesos-hero__meta,
+.pesos-hero__bottom,
+.pesos-hero__eyebrow,
+.pesos-hero__description {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
+.pesos-hero__content h1 {
+  font-family: var(--font-vanish), sans-serif;
+}
+
+/* =========================================
+   TOP ROW — IDENTITY / META
+   ========================================= */
+
+.pesos-hero__identity {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: start;
+  justify-self: start;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pesos-hero__identity-mark {
+  color: #ff8a3d;
+  font-size: 13px;
+}
+
+.pesos-hero__meta {
+  grid-row: 1;
+  grid-column: 2;
+  align-self: start;
+  justify-self: end;
+
+  display: flex;
+  gap: 36px;
+}
+
+.pesos-hero__meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: right;
+}
+
+.pesos-hero__meta span {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pesos-hero__meta strong {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+
+/* =========================================
+   CENTER — MAIN STATEMENT
+   ========================================= */
+
+.pesos-hero__content {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  align-self: center;
+  justify-self: center;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  max-width: 900px;
+  text-align: center;
+}
+
+.pesos-hero__eyebrow {
+  margin: 0 0 18px;
+
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pesos-hero__content h1 {
+  margin: 0;
+
+  font-size: clamp(56px, 10vw, 148px);
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+  text-transform: lowercase;
+  color: #fff;
+}
+
+.pesos-hero__description {
+  margin: 28px 0 0;
+
+  font-size: clamp(14px, 1.4vw, 17px);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* =========================================
+   BOTTOM ROW — STATUS / CTA / SCROLL
+   ========================================= */
+
+.pesos-hero__bottom {
+  grid-row: 3;
+  grid-column: 1 / -1;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.pesos-hero__status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.pesos-hero__status span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #ff8a3d;
+  box-shadow: 0 0 0 0 rgba(255, 138, 61, 0.6);
+  animation: pesos-status-pulse 2.2s ease-out infinite;
+}
+
+@keyframes pesos-status-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 138, 61, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(255, 138, 61, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 138, 61, 0);
+  }
+}
+
+.pesos-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 14px 26px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #fff;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.pesos-hero__cta:hover {
+  background: #fff;
+  color: #180a04;
+  border-color: #fff;
+}
+
+.pesos-hero__cta span {
+  transition: transform 0.25s ease;
+}
+
+.pesos-hero__cta:hover span {
+  transform: translate(2px, -2px);
+}
+
+.pesos-hero__scroll {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 720px) {
+  .pesos-hero {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    row-gap: 28px;
+    padding-top: 120px;
+  }
+
+  .pesos-hero__meta {
+    grid-row: 2;
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .pesos-hero__meta > div {
+    text-align: left;
+  }
+
+  .pesos-hero__content {
+    grid-row: 3;
+    max-width: 100%;
+  }
+
+  .pesos-hero__content h1 {
+    font-size: clamp(1.8rem, 12vw, 3.5rem);
+    overflow-wrap: break-word;
+  }
+
+  .pesos-hero__bottom {
+    grid-row: 4;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+}
+/* =========================================
+   POLICY PAGES
+   ========================================= */
+
+/* Sections number themselves, so one can be reordered or dropped without
+   renumbering the rest by hand — and the number can never disagree with the
+   position. */
+.pesos-policy {
+  counter-reset: pesos-policy-section;
+}
+
+.pesos-policy section {
+  counter-increment: pesos-policy-section;
+}
+
+.pesos-policy section > h2::before {
+  content: counter(pesos-policy-section) ". ";
+}
+
+/* =========================================
+   TEXT-FACE OPT-OUT
+   ========================================= */
+
+/* The site sets every heading in Vanish, and that rule is unlayered, so it
+   beats a `font-sans` utility no matter how specific the utility is — an
+   explicit class is the only way back to the text face.
+
+   Wanted wherever a heading is read as words rather than seen as a mark:
+   Vanish is a display stencil, and past a few characters it stops resolving.
+   The policy pages are long-form reading; the footer headline is a sentence. */
+.pesos-text-face,
+.pesos-policy h2 {
+  font-family: var(--font-space-grotesk), sans-serif;
+}
+
+/* =========================================
+   SCROLL HINT (shop carousel)
+
+   The carousel spins on wheel and drag, which is not discoverable from a
+   still frame — nothing on screen says the pieces move. A dot travelling
+   down a track and back says "this scrolls" without a sentence of
+   instructions.
+   ========================================= */
+
+.pesos-scroll-hint__dot {
+  animation: pesos-scroll-drift 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes pesos-scroll-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(9px);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.35;
+  }
+}
+
+/* Reduced motion keeps the affordance and drops the travel: the dot still
+   marks the track, it just stops moving down it. */
+@media (prefers-reduced-motion: reduce) {
+  .pesos-scroll-hint__dot {
+    animation: none;
+    opacity: 0.75;
+  }
+}
+
+/* =========================================
+   SCENE LABELS (shop carousel)
+
+   The same treatment the contact and policy pages use — bold, tightly
+   tracked, near-white — because that is what stays legible. The carousel's
+   labels were previously set light, widely tracked and at 45-80% opacity,
+   which reads well on a flat dark panel and disappears entirely over the
+   thing they actually sit on: a rotating wall of product photographs.
+
+   The shadow is the part those pages do not need. They have a controlled
+   background; this text has whatever piece happens to be behind it, so it
+   carries its own contrast rather than relying on the vignette.
+   ========================================= */
+
+.pesos-scene-label {
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: #fafafa;
+  text-shadow:
+    0 1px 2px rgb(0 0 0 / 0.55),
+    0 2px 18px rgb(0 0 0 / 0.45);
+}
+
+/* =========================================
+   THE NAMING (treasure hunt)
+
+   You are told your name before you are allowed to play. The staging is
+   the whole point — three beats, each landing after the last, so it reads
+   as a sentence being spoken rather than a panel appearing. Delays are
+   short enough that a returning player who taps straight through never
+   feels held up; the overlay is dismissible from the first frame.
+
+   `backwards` on the fill mode matters: without it each line paints at
+   full opacity for the frame before its delay elapses, which is a flash of
+   the finished state and then a jump back to nothing.
+   ========================================= */
+
+.pesos-proclaim {
+  animation: pesos-proclaim-veil 420ms ease-out both;
+}
+
+.pesos-proclaim__line {
+  animation: pesos-proclaim-rise 620ms 160ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+
+.pesos-proclaim__name {
+  animation: pesos-proclaim-name 780ms 520ms cubic-bezier(0.16, 0.9, 0.24, 1) backwards;
+}
+
+.pesos-proclaim__foot {
+  animation: pesos-proclaim-rise 620ms 1150ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+
+@keyframes pesos-proclaim-veil {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pesos-proclaim-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* The name arrives fractionally wide and settles in, which reads as being
+   pronounced. Tracking rather than scale, so it never blurs mid-flight. */
+@keyframes pesos-proclaim-name {
+  from { opacity: 0; letter-spacing: 0.22em; transform: translateY(10px); }
+  to   { opacity: 1; letter-spacing: -0.02em; transform: none; }
+}
+
+/* Reduced motion keeps the sequence and drops the travel — the beats still
+   land in order, which is the part carrying the meaning. */
+@media (prefers-reduced-motion: reduce) {
+  .pesos-proclaim__line,
+  .pesos-proclaim__name,
+  .pesos-proclaim__foot {
+    animation-name: pesos-proclaim-veil;
+  }
+}
+
+/* =========================================
+   THE NAME RAIL (treasure hunt)
+
+   Your handle set down the left edge for as long as you are in the garden.
+   `vertical-rl` rather than a rotate: it keeps the element in normal flow
+   for centring and, unlike a transform, does not hand the text to the
+   compositor as a bitmap — rotated 10px type resampled that way goes soft
+   exactly where it is already smallest.
+
+   The wide tracking is doing real work at this size. Vertical Latin stacks
+   the glyphs closer than horizontal metrics assume, so the default spacing
+   reads as a smear.
+   ========================================= */
+
+.pesos-hunt-rail {
+  writing-mode: vertical-rl;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 640px) {
+  .pesos-hunt-rail {
+    font-size: 11px;
+    letter-spacing: 0.38em;
+  }
+}
+
+/* =========================================
+   LAP TIMES BOARD (treasure hunt)
+
+   Strips of magnetic tape written on in marker and stuck to a workshop
+   board, after the lap-time boards this is borrowed from.
+
+   Two details carry the whole illusion and both are easy to lose:
+
+   The tilt. Rectangles aligned to each other read as a data table no matter
+   what they are coloured; a couple of degrees of disagreement between them
+   reads as objects placed by hand. Each strip carries its own --tilt and a
+   small --shift so the left edges do not line up either.
+
+   The shadow sits tight and slightly below. A large soft shadow reads as
+   "floating card"; a 2-3px offset reads as a thing lying against a surface.
+
+   Cream rather than white, because a white strip on a light ground vanishes
+   and these have to survive the floor washing out when the code rises. */
+
+.pesos-lapboard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+}
+
+.pesos-lapboard__title {
+  align-self: flex-end;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  /* Gold, not the brand red: the garden is red now, and a red title hung
+     over red planting is a title nobody reads. */
+  color: #f2c14e;
+  /* Reads on the dark maze and on the washed-out reveal alike. */
+  text-shadow:
+    0 1px 0 rgb(0 0 0 / 0.5),
+    0 2px 10px rgb(0 0 0 / 0.4);
+}
+
+.pesos-lapboard__sub {
+  align-self: flex-end;
+  margin-top: -4px;
+  margin-bottom: 3px;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f4f6f8;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.75);
+}
+
+.pesos-lapboard__strip {
+  display: grid;
+  grid-template-columns: 1.25rem 1fr auto;
+  align-items: baseline;
+  gap: 0.5rem;
+
+  padding: 7px 11px 8px;
+  background: linear-gradient(178deg, #f6f1e4 0%, #eee7d6 100%);
+  color: #14110d;
+  border-radius: 1px;
+
+  transform: rotate(var(--tilt, 0deg)) translateX(var(--shift, 0px));
+  box-shadow:
+    0 2px 4px rgb(0 0 0 / 0.42),
+    0 0 0 1px rgb(0 0 0 / 0.06) inset;
+
+  /* Self-hosted Permanent Marker, so this is the same hand on every device.
+     The platform faces behind it only matter for the swap window, and
+     Grotesk anchors the stack for anything that fails outright. */
+  font-family: var(--font-marker), "Marker Felt", "Segoe Print",
+    "Bradley Hand", var(--font-space-grotesk), sans-serif;
+  /* Permanent Marker ships one weight. Asking for 600 would have the
+     browser synthesise a bold and thicken every stroke unevenly. */
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.pesos-lapboard__rank {
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.pesos-lapboard__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pesos-lapboard__time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Your own row, marked the way someone would mark it: not a different
+   colour of text, a highlighter run over the strip. */
+.pesos-lapboard__strip.is-you {
+  background: linear-gradient(178deg, #fdf6c9 0%, #f6ecad 100%);
+  box-shadow:
+    0 2px 5px rgb(0 0 0 / 0.46),
+    0 0 0 1px rgb(0 0 0 / 0.1) inset;
+}
+
+@media (max-width: 640px) {
+  .pesos-lapboard__strip {
+    font-size: 13px;
+    padding: 5px 9px 6px;
+  }
+  .pesos-lapboard__title { font-size: 13px; }
+}
+
+/* The same strips, hung on the wall at the end of the hunt instead of
+   pinned beside a running maze — so this is a container of its own rather
+   than a reuse of .pesos-lapboard, which is hidden on phones (see below) and
+   sized for a 46vw rail. Here the board IS the screen: it is the thing
+   someone finished five rounds to look themselves up on, so the strips run
+   the full column and are stepped up to match. */
+
+.pesos-finalboard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.pesos-finalboard .pesos-lapboard__strip {
+  grid-template-columns: 1.75rem 1fr auto;
+  padding: 9px 13px 10px;
+  font-size: 17px;
+}
+
+.pesos-finalboard .pesos-lapboard__rank {
+  font-size: 13px;
+}
+
+/* Its own query rather than the strip's: the rule above outranks that one
+   on specificity, so without this the phone size never lands. */
+@media (max-width: 640px) {
+  .pesos-finalboard .pesos-lapboard__strip {
+    padding: 7px 11px 8px;
+    font-size: 15px;
+  }
+}
+
+/* The lap-times strip is a desktop luxury. It is pinned to the right edge at
+   46vw, which on a phone is nearly half the board sitting on top of the maze
+   you are trying to run — the strips are opaque and the maze is behind them.
+   Hidden below the tablet breakpoint; the Leaderboard button opens the same
+   times full-screen, where they are actually legible. */
+@media (max-width: 767px) {
+  .pesos-lapboard {
+    display: none;
+  }
+}
+
+/* A tilted strip is decoration; someone who has asked for less movement is
+   not asking for a crooked table, so the angle stays — it is layout, not
+   animation — but nothing here transitions. */
+
+/* =========================================
+   HUNT CONTROLS ON A PHONE
+
+   Everything here is one requirement: a thumb is about 9mm across and a
+   13px uppercase label is about 4mm tall, so the label cannot be the target.
+   The buttons were sized by their padding, which made them 37px high — under
+   every platform's minimum and, more to the point, under what anyone can hit
+   while the other hand is holding the phone.
+
+   min-height rather than more padding, so the label stays optically where it
+   was on a desktop and only the hit area grows.
+   ========================================= */
+
+.pesos-hunt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  /* The labels are uppercase and tracked; a wrap mid-word inside a button
+     reads as a broken layout rather than as a long word. */
+  white-space: nowrap;
+}
+
+.pesos-hunt-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  min-width: 38px;
+}
+
+/* The maze-number tabs. A visible scrollbar over six chips is louder than
+   the chips, and the row is obviously scrollable from the one clipped at the
+   edge — which is why the strip is not padded to end exactly on a tab. */
+.pesos-board-tabs {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.pesos-board-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* The rail of hunts on /hunt. Same reasoning as the tabs above: the arrows
+   and the card clipped at the right edge say it scrolls, and a scrollbar
+   under a row of cards says it louder than the cards do. */
+.pesos-hunt-cards {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.pesos-hunt-cards::-webkit-scrollbar {
+  display: none;
+}
+
+/* The links to the other boards, pinned under the board's scrollport. The
+   bottom padding is the home indicator on a modern phone, so the last thing
+   on a leaderboard is not sitting under the bar that closes the browser.
+   The scrollport above keeps its own line of air. */
+.pesos-board-foot {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* "Live" means the rows are being re-read, so the dot breathes rather than
+   sitting there being a red square. Slow and shallow: this is a status
+   light, not something asking to be looked at. */
+.pesos-live-dot {
+  animation: pesos-live-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes pesos-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pesos-live-dot {
+    animation: none;
+  }
+}
+
+/* The HUD and the result plate both sit against the bottom edge of the game
+   frame, which on a phone is the edge the home indicator crosses. env() is
+   0 everywhere it does not apply, so this costs nothing on a desktop. */
+.pesos-hunt-hud {
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+.pesos-hunt-result {
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Type on the result plate, which has no plate: it sits straight on the red
+   lawn with the mark rising behind it. A tight shadow and a wide one, the
+   same pair as .pesos-scene-label, so small uppercase reads over the lawn
+   and the planting alike. */
+.pesos-hunt-result-text {
+  text-shadow:
+    0 1px 2px rgb(0 0 0 / 0.55),
+    0 2px 12px rgb(0 0 0 / 0.45);
+}
+
+@media (min-width: 640px) {
+  .pesos-hunt-hud {
+    padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+  }
+  .pesos-hunt-result {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* =========================================
+   404 — THE LENS
+   The grid of everything, in the dark, with
+   a circle of glass over it. See
+   components/NotFoundLens.tsx.
+   ========================================= */
+
+.pesos-lens-page {
+  --lens-r: 190px;
+  --lens-x: 50%;
+  --lens-y: 42%;
+
+  min-height: calc(100vh - var(--navbar-height));
+  background: #000;
+}
+
+/* The headline occupies exactly the first screenful, so it scrolls away and
+   leaves the grid to itself. */
+.pesos-lens-words {
+  height: calc(100vh - var(--navbar-height));
+}
+
+@supports (height: 100dvh) {
+  .pesos-lens-words {
+    height: calc(100dvh - var(--navbar-height));
+  }
+}
+
+.pesos-lens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(102px, 1fr));
+  gap: 2px;
+}
+
+@media (min-width: 768px) {
+  .pesos-lens-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+.pesos-lens-tile {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #0b0b0b;
+}
+
+/* The dim lives behind [data-lens="on"], which only JS sets. Without it the
+   page is a plain, readable grid — the right outcome when the script fails,
+   and the right outcome on a phone, where there is no pointer to carry the
+   glass and the lens is deliberately never switched on. */
+.pesos-lens-page[data-lens="on"] .pesos-lens-base {
+  filter: grayscale(1) brightness(0.17) contrast(1.15);
+}
+
+.pesos-lens-reveal {
+  position: absolute;
+  inset: 0;
+
+  /* Clicks belong to the layer underneath: the glass is something you look
+     through, not something you press. */
+  pointer-events: none;
+
+  clip-path: circle(var(--lens-r) at var(--lens-x) var(--lens-y));
+}
+
+/* A rim, so the circle reads as glass held over the page rather than a hole
+   cut in it. Drawn as a ring on the revealed layer so it clips with it. */
+.pesos-lens-reveal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 0 60px rgba(0, 0, 0, 0.55);
+  clip-path: circle(var(--lens-r) at var(--lens-x) var(--lens-y));
+}
+
+/* The words. A scrim rather than a panel — the grid should still be legible
+   behind them, because the point of the page is that it is all still there. */
+/* Sized to carry the words on a phone, where the grid behind them is in
+   full colour and undimmed — the desktop case is already sitting on a dark
+   base, so what is legible here is legible there. */
+.pesos-lens-plate {
+  background: radial-gradient(
+    ellipse 78% 68% at 50% 50%,
+    rgba(0, 0, 0, 0.94) 0%,
+    rgba(0, 0, 0, 0.86) 42%,
+    rgba(0, 0, 0, 0) 80%
+  );
+}
